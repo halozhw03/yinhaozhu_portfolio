@@ -63,12 +63,12 @@ If you're using VS Code, install the "Live Server" extension and click "Go Live"
 
 ### Important Notes
 
-- The PDF file (`Yinhao Zhu_Portfolio.pdf`) should be in the root directory
-- GitHub has a file size limit of 100MB per file, but for optimal performance, keep PDFs under 10MB
-- If your PDF is very large (>10MB), consider:
-  - Compressing the PDF
-  - Using Git LFS (Large File Storage)
-  - Hosting the PDF on a CDN and updating the path in `js/main.js`
+- The PDF file (`compressed_portfolio.pdf`) is managed using Git LFS (Large File Storage)
+- Git LFS is required to properly handle the PDF file. Make sure Git LFS is installed:
+  ```bash
+  git lfs install
+  ```
+- The PDF file will be automatically tracked by LFS via `.gitattributes` configuration
 
 ## File Structure
 
@@ -79,7 +79,8 @@ yinhaozhu_portfolio/
 │   └── style.css          # Stylesheet
 ├── js/
 │   └── main.js            # PDF.js integration and controls
-├── Yinhao Zhu_Portfolio.pdf  # Portfolio PDF file
+├── compressed_portfolio.pdf  # Portfolio PDF file (managed by Git LFS)
+├── .gitattributes         # Git LFS configuration
 └── README.md              # This file
 ```
 
@@ -94,9 +95,11 @@ yinhaozhu_portfolio/
 
 ### Change PDF File
 
-Update the `pdfPath` variable in `js/main.js`:
+Update the `getPDFPath()` function in `js/main.js`:
 ```javascript
-const pdfPath = 'YOUR_PDF_FILENAME.pdf';
+function getPDFPath() {
+    return 'YOUR_PDF_FILENAME.pdf';
+}
 ```
 
 ### Modify Colors
