@@ -15,3 +15,6 @@ npm-debug.log*
 
 # Node modules (if you add any build tools later)
 node_modules/
+
+# Large files
+*.pdf
