@@ -182,50 +182,74 @@ function showViewer() {
 }
 
 /**
- * Get PDF path based on environment
- * For GitHub Pages, use raw.githubusercontent.com URL
- * For local development, use relative path
+ * Get multiple PDF path options for fallback
  */
-function getPDFPath() {
-    // Check if we're on GitHub Pages
+function getPDFPathOptions() {
     const hostname = window.location.hostname;
     const isGitHubPages = hostname.includes('github.io') || hostname.includes('github.com');
     
     if (isGitHubPages) {
-        // Use GitHub raw content URL for LFS files
-        // Format: https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/FILENAME
-        const repoPath = window.location.pathname.split('/').slice(0, 2).join('/'); // e.g., /yinhaozhu_portfolio
-        const branch = 'main';
-        const filename = 'Yinhao%20Zhu_Portfolio.pdf'; // URL encoded
-        return `https://raw.githubusercontent.com/halozhw03/yinhaozhu_portfolio/${branch}/${filename}`;
+        const username = 'halozhw03';
+        const repo = 'yinhaozhu_portfolio';
+        const filename = 'Yinhao Zhu_Portfolio.pdf';
+        const encodedFilename = encodeURIComponent(filename);
+        
+        // Return multiple options in order of preference
+        return [
+            // Option 1: GitHub Releases (best for large files >100MB)
+            `https://github.com/${username}/${repo}/releases/latest/download/${encodedFilename}`,
+            // Option 2: jsDelivr CDN (may not work for LFS files)
+            `https://cdn.jsdelivr.net/gh/${username}/${repo}@main/${encodedFilename}`,
+            // Option 3: GitHub raw content (may not work for LFS files)
+            `https://raw.githubusercontent.com/${username}/${repo}/main/${encodedFilename}`
+        ];
     } else {
         // Local development - use relative path
-        return 'Yinhao Zhu_Portfolio.pdf';
+        return ['Yinhao Zhu_Portfolio.pdf'];
     }
 }
 
 /**
- * Load PDF document
+ * Load PDF document with fallback URLs
  */
 function loadPDF() {
-    const pdfPath = getPDFPath();
+    const pdfPaths = getPDFPathOptions();
+    let currentIndex = 0;
     
-    // Configure PDF.js to handle CORS for GitHub raw content
-    const loadingTask = pdfjsLib.getDocument({
-        url: pdfPath,
-        withCredentials: false
-    });
+    function tryLoadPDF(index) {
+        if (index >= pdfPaths.length) {
+            console.error('All PDF loading attempts failed');
+            showError();
+            return;
+        }
+        
+        const pdfPath = pdfPaths[index];
+        console.log(`Attempting to load PDF from: ${pdfPath}`);
+        
+        // Configure PDF.js to handle CORS
+        const loadingTask = pdfjsLib.getDocument({
+            url: pdfPath,
+            withCredentials: false,
+            httpHeaders: {
+                'Accept': 'application/pdf'
+            }
+        });
+        
+        loadingTask.promise.then(function(pdf) {
+            console.log('PDF loaded successfully from:', pdfPath);
+            pdfDoc = pdf;
+            showViewer();
+            // Auto fit to width on initial load for better readability
+            onFitWidth();
+        }).catch(function(error) {
+            console.warn(`Failed to load PDF from ${pdfPath}:`, error);
+            // Try next URL
+            tryLoadPDF(index + 1);
+        });
+    }
     
-    loadingTask.promise.then(function(pdf) {
-        pdfDoc = pdf;
-        showViewer();
-        // Auto fit to width on initial load for better readability
-        onFitWidth();
-    }).catch(function(error) {
-        console.error('Error loading PDF:', error);
-        console.error('PDF Path:', pdfPath);
-        showError();
-    });
+    // Start loading with first URL
+    tryLoadPDF(0);
 }
 
 // Event listeners
