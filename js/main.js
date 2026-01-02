@@ -187,78 +187,41 @@ function showViewer() {
 }
 
 /**
- * Get PDF path with fallback options
+ * Get PDF path
  */
-function getPDFPathOptions() {
-    const hostname = window.location.hostname;
-    const isGitHubPages = hostname.includes('github.io') || hostname.includes('github.com');
-    
-    if (isGitHubPages) {
-        const username = 'halozhw03';
-        const repo = 'yinhaozhu_portfolio';
-        const filename = 'compressed_portfolio.pdf';
-        const encodedFilename = encodeURIComponent(filename);
-        
-        // Return multiple options in order of preference
-        return [
-            // Option 1: GitHub raw content (works for LFS files)
-            `https://raw.githubusercontent.com/${username}/${repo}/main/${encodedFilename}`,
-            // Option 2: Relative path (may not work for LFS files on GitHub Pages)
-            filename
-        ];
-    } else {
-        // Local development - use relative path
-        return ['compressed_portfolio.pdf'];
-    }
+function getPDFPath() {
+    // Use relative path - works for both local and GitHub Pages
+    return 'compressed_portfolio.pdf';
 }
 
 /**
- * Load PDF document with fallback URLs
+ * Load PDF document
  */
 function loadPDF() {
-    const pdfPaths = getPDFPathOptions();
-    let currentIndex = 0;
+    const pdfPath = getPDFPath();
+    console.log(`Loading PDF from: ${pdfPath}`);
     
-    function tryLoadPDF(index) {
-        if (index >= pdfPaths.length) {
-            console.error('All PDF loading attempts failed. Please check:');
-            console.error('1. File exists and is committed to the repository');
-            console.error('2. Git LFS is properly configured');
-            console.error('3. File is pushed to GitHub with LFS');
-            showError('All loading attempts failed. Check console for details.');
-            return;
-        }
-        
-        const pdfPath = pdfPaths[index];
-        console.log(`Attempting to load PDF from: ${pdfPath} (attempt ${index + 1}/${pdfPaths.length})`);
-        
-        // Configure PDF.js to handle CORS
-        const loadingTask = pdfjsLib.getDocument({
-            url: pdfPath,
-            withCredentials: false,
-            httpHeaders: {
-                'Accept': 'application/pdf'
-            },
-            // Enable CORS for cross-origin requests
-            cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-            cMapPacked: true
-        });
-        
-        loadingTask.promise.then(function(pdf) {
-            console.log('PDF loaded successfully from:', pdfPath);
-            pdfDoc = pdf;
-            showViewer();
-            // Auto fit to width on initial load for better readability
-            onFitWidth();
-        }).catch(function(error) {
-            console.warn(`Failed to load PDF from ${pdfPath}:`, error);
-            // Try next URL
-            tryLoadPDF(index + 1);
-        });
-    }
+    // Configure PDF.js
+    const loadingTask = pdfjsLib.getDocument({
+        url: pdfPath,
+        withCredentials: false,
+        httpHeaders: {
+            'Accept': 'application/pdf'
+        },
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true
+    });
     
-    // Start loading with first URL
-    tryLoadPDF(0);
+    loadingTask.promise.then(function(pdf) {
+        console.log('PDF loaded successfully');
+        pdfDoc = pdf;
+        showViewer();
+        // Auto fit to width on initial load for better readability
+        onFitWidth();
+    }).catch(function(error) {
+        console.error('Failed to load PDF:', error);
+        showError(error);
+    });
 }
 
 // Event listeners

@@ -63,12 +63,9 @@ If you're using VS Code, install the "Live Server" extension and click "Go Live"
 
 ### Important Notes
 
-- The PDF file (`compressed_portfolio.pdf`) is managed using Git LFS (Large File Storage)
-- Git LFS is required to properly handle the PDF file. Make sure Git LFS is installed:
-  ```bash
-  git lfs install
-  ```
-- The PDF file will be automatically tracked by LFS via `.gitattributes` configuration
+- The PDF file (`compressed_portfolio.pdf`) is directly committed to the repository
+- GitHub Pages does not support Git LFS files, so the PDF is stored directly in Git
+- The file size (12.8MB) is within GitHub's 100MB file size limit
 
 ## File Structure
 
@@ -79,8 +76,7 @@ yinhaozhu_portfolio/
 │   └── style.css          # Stylesheet
 ├── js/
 │   └── main.js            # PDF.js integration and controls
-├── compressed_portfolio.pdf  # Portfolio PDF file (managed by Git LFS)
-├── .gitattributes         # Git LFS configuration
+├── compressed_portfolio.pdf  # Portfolio PDF file
 └── README.md              # This file
 ```
 
