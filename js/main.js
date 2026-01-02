@@ -182,18 +182,48 @@ function showViewer() {
 }
 
 /**
+ * Get PDF path based on environment
+ * For GitHub Pages, use raw.githubusercontent.com URL
+ * For local development, use relative path
+ */
+function getPDFPath() {
+    // Check if we're on GitHub Pages
+    const hostname = window.location.hostname;
+    const isGitHubPages = hostname.includes('github.io') || hostname.includes('github.com');
+    
+    if (isGitHubPages) {
+        // Use GitHub raw content URL for LFS files
+        // Format: https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/FILENAME
+        const repoPath = window.location.pathname.split('/').slice(0, 2).join('/'); // e.g., /yinhaozhu_portfolio
+        const branch = 'main';
+        const filename = 'Yinhao%20Zhu_Portfolio.pdf'; // URL encoded
+        return `https://raw.githubusercontent.com/halozhw03/yinhaozhu_portfolio/${branch}/${filename}`;
+    } else {
+        // Local development - use relative path
+        return 'Yinhao Zhu_Portfolio.pdf';
+    }
+}
+
+/**
  * Load PDF document
  */
 function loadPDF() {
-    const pdfPath = 'Yinhao Zhu_Portfolio.pdf';
+    const pdfPath = getPDFPath();
     
-    pdfjsLib.getDocument(pdfPath).promise.then(function(pdf) {
+    // Configure PDF.js to handle CORS for GitHub raw content
+    const loadingTask = pdfjsLib.getDocument({
+        url: pdfPath,
+        withCredentials: false
+    });
+    
+    loadingTask.promise.then(function(pdf) {
         pdfDoc = pdf;
         showViewer();
         // Auto fit to width on initial load for better readability
         onFitWidth();
     }).catch(function(error) {
         console.error('Error loading PDF:', error);
+        console.error('PDF Path:', pdfPath);
         showError();
     });
 }
