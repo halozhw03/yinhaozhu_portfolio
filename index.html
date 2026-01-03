@@ -24,6 +24,11 @@
                 </div>
                 <div id="pdf-error" class="error-message" style="display: none;">
                     <p>Unable to load PDF. Please try again later.</p>
+                    <p style="margin-top: 1rem;">
+                        <a class="pdf-fallback-link" href="YinhaoZhu_Portfolio-compressed.pdf" target="_blank" rel="noopener">
+                            Open PDF in new tab
+                        </a>
+                    </p>
                 </div>
                 <div id="pdf-viewer-container" class="pdf-viewer-container" style="display: none;">
                     <div class="pdf-controls">
@@ -51,8 +56,8 @@
         </div>
     </footer>
 
-    <!-- PDF.js library from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF.js library (local, for maximum availability) -->
+    <script src="vendor/pdfjs/pdf.min.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

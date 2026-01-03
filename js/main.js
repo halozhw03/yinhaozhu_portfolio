@@ -1,5 +1,5 @@
 // PDF.js configuration
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
 
 // PDF state management
 let pdfDoc = null;
@@ -26,7 +26,8 @@ const fitWidthBtn = document.getElementById('fit-width');
 
 // Initialize canvas
 canvas = canvasElement;
-ctx = canvas.getContext('2d');
+// Use willReadFrequently to improve performance for PDF.js rendering.
+ctx = canvas.getContext('2d', { willReadFrequently: true });
 
 /**
  * Get page info from document, resize canvas accordingly, and render the page.
@@ -45,23 +46,22 @@ function renderPage(num) {
         canvas.style.width = viewport.width + 'px';
         canvas.style.height = viewport.height + 'px';
         
-        // Set canvas internal size (actual pixels) - multiply by devicePixelRatio for crisp rendering
-        // Use higher multiplier for better quality on high-DPI displays
+        // Set canvas internal size (actual pixels) for crisp rendering.
+        // Use higher multiplier for better quality on high-DPI displays.
         const outputScale = Math.max(devicePixelRatio, 2); // Minimum 2x for high resolution
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
-        
-        // Reset transform and scale the rendering context to match device pixel ratio
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.scale(outputScale, outputScale);
-        
+
+        // Use transform rather than ctx.scale because PDF.js manages canvas transforms internally.
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+
         // Enable image smoothing for better quality
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        
-        // Create render context with the scaled viewport
+
         const renderContext = {
             canvasContext: ctx,
+            transform: transform,
             viewport: viewport
         };
         
@@ -224,60 +224,36 @@ function getPDFPath() {
 function loadPDF() {
     const pdfPath = getPDFPath();
     console.log(`Loading PDF from: ${pdfPath}`);
-    
-    // Use fetch API to load PDF as ArrayBuffer to avoid CORS issues
-    fetch(pdfPath)
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+
+    // Use PDF.js URL loading for streaming/range requests (better for large PDFs)
+    const loadingTask = pdfjsLib.getDocument({
+        url: pdfPath,
+        withCredentials: false,
+        verbosity: 0
+    });
+
+    loadingTask.promise.then(function(pdf) {
+        console.log('PDF loaded successfully. Total pages:', pdf.numPages);
+        pdfDoc = pdf;
+        pageNum = 1;
+        showViewer();
+        // Auto fit to width on initial load for better readability
+        setTimeout(() => {
+            onFitWidth();
+            // If the fit width scale is too small, use a minimum scale
+            if (scale < 1.0) {
+                scale = 1.0;
+                updateZoomLevel();
             }
-            return response.arrayBuffer();
-        })
-        .then(function(data) {
-            // Load PDF from ArrayBuffer
-            const loadingTask = pdfjsLib.getDocument({
-                data: data,
-                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-                cMapPacked: true,
-                verbosity: 0,
-                disableAutoFetch: false,
-                disableStream: false
-            });
-            
-            return loadingTask.promise;
-        })
-        .then(function(pdf) {
-            console.log('PDF loaded successfully. Total pages:', pdf.numPages);
-            pdfDoc = pdf;
-            showViewer();
-            // Auto fit to width on initial load for better readability
-            setTimeout(() => {
-                onFitWidth();
-                // If the fit width scale is too small, use a minimum scale
-                if (scale < 1.0) {
-                    scale = 1.0;
-                    updateZoomLevel();
-                    queueRenderPage(pageNum);
-                }
-            }, 100);
-        })
-        .catch(function(error) {
-            console.error('Failed to load PDF:', error);
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            console.error('PDF path attempted:', pdfPath);
-            
-            // Provide helpful error message
-            let errorName = error.name || 'UnknownError';
-            let errorMessage = error.message || 'Unknown error occurred';
-            
-            if (error.message && error.message.includes('Failed to fetch')) {
-                errorName = 'NetworkError';
-                errorMessage = 'Cannot load PDF file. Please ensure you are using a local web server (e.g., python3 -m http.server 8000) and access via http://localhost:8000';
-            }
-            
-            showError({ name: errorName, message: errorMessage });
-        });
+            queueRenderPage(pageNum);
+        }, 100);
+    }).catch(function(error) {
+        console.error('Failed to load PDF:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('PDF path attempted:', pdfPath);
+        showError(error);
+    });
 }
 
 // Event listeners
