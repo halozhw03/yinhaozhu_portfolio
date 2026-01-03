@@ -23,6 +23,8 @@ const zoomOutBtn = document.getElementById('zoom-out');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomLevelSpan = document.getElementById('zoom-level');
 const fitWidthBtn = document.getElementById('fit-width');
+const pdfFileInput = document.getElementById('pdf-file-input');
+const selectPdfBtn = document.getElementById('select-pdf-btn');
 
 // Initialize canvas
 canvas = canvasElement;
@@ -179,6 +181,25 @@ function showError(errorDetails) {
     // Add error details to console for debugging
     if (errorDetails) {
         console.error('PDF loading error details:', errorDetails);
+        
+        // Show more detailed error message to user
+        let errorMsg = 'Unable to load PDF. ';
+        if (errorDetails.message) {
+            errorMsg += errorDetails.message;
+        } else if (errorDetails.name === 'MissingPDFException') {
+            errorMsg += 'PDF file not found. Please check the file path.';
+        } else if (errorDetails.name === 'InvalidPDFException') {
+            errorMsg += 'Invalid PDF file. Please check the file format.';
+        } else if (errorDetails.name === 'UnexpectedResponseException') {
+            errorMsg += 'Network error. If opening locally, please use a local server (e.g., python -m http.server).';
+        } else {
+            errorMsg += 'Error: ' + (errorDetails.name || 'Unknown error');
+        }
+        
+        const errorElement = pdfError.querySelector('p');
+        if (errorElement) {
+            errorElement.textContent = errorMsg;
+        }
     }
 }
 
@@ -200,7 +221,69 @@ function getPDFPath() {
 }
 
 /**
- * Load PDF document
+ * Load PDF from file input (for local files)
+ */
+function loadPDFFromFile(file) {
+    if (!file || file.type !== 'application/pdf') {
+        showError({ name: 'InvalidFile', message: 'Please select a valid PDF file.' });
+        return;
+    }
+    
+    console.log('Loading PDF from file:', file.name);
+    pdfLoader.style.display = 'flex';
+    pdfError.style.display = 'none';
+    
+    const fileReader = new FileReader();
+    fileReader.onload = function(e) {
+        const typedArray = new Uint8Array(e.target.result);
+        loadPDFFromData(typedArray);
+    };
+    fileReader.onerror = function(error) {
+        console.error('File reading error:', error);
+        showError({ name: 'FileReadError', message: 'Failed to read the PDF file.' });
+    };
+    fileReader.readAsArrayBuffer(file);
+}
+
+/**
+ * Load PDF from ArrayBuffer or URL
+ */
+function loadPDFFromData(data) {
+    // Configure PDF.js with high-quality rendering settings
+    const loadingTask = pdfjsLib.getDocument({
+        data: data,
+        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+        cMapPacked: true,
+        verbosity: 0,
+        disableAutoFetch: false,
+        disableStream: false
+    });
+    
+    loadingTask.promise.then(function(pdf) {
+        console.log('PDF loaded successfully. Total pages:', pdf.numPages);
+        pdfDoc = pdf;
+        pageNum = 1; // Reset to first page
+        showViewer();
+        // Auto fit to width on initial load for better readability
+        setTimeout(() => {
+            onFitWidth();
+            // If the fit width scale is too small, use a minimum scale
+            if (scale < 1.0) {
+                scale = 1.0;
+                updateZoomLevel();
+                queueRenderPage(pageNum);
+            }
+        }, 100);
+    }).catch(function(error) {
+        console.error('Failed to load PDF:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        showError(error);
+    });
+}
+
+/**
+ * Load PDF document from URL
  */
 function loadPDF() {
     const pdfPath = getPDFPath();
@@ -222,7 +305,7 @@ function loadPDF() {
     });
     
     loadingTask.promise.then(function(pdf) {
-        console.log('PDF loaded successfully');
+        console.log('PDF loaded successfully. Total pages:', pdf.numPages);
         pdfDoc = pdf;
         showViewer();
         // Auto fit to width on initial load for better readability
@@ -238,6 +321,14 @@ function loadPDF() {
         }, 100);
     }).catch(function(error) {
         console.error('Failed to load PDF:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('PDF path attempted:', pdfPath);
+        // Show file selector when URL loading fails
+        if (pdfFileInput && selectPdfBtn) {
+            pdfFileInput.style.display = 'block';
+            selectPdfBtn.style.display = 'inline-block';
+        }
         showError(error);
     });
 }
@@ -248,6 +339,20 @@ nextBtn.addEventListener('click', onNextPage);
 zoomOutBtn.addEventListener('click', onZoomOut);
 zoomInBtn.addEventListener('click', onZoomIn);
 fitWidthBtn.addEventListener('click', onFitWidth);
+
+// File input event listeners
+if (selectPdfBtn && pdfFileInput) {
+    selectPdfBtn.addEventListener('click', function() {
+        pdfFileInput.click();
+    });
+    
+    pdfFileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            loadPDFFromFile(file);
+        }
+    });
+}
 
 // Keyboard navigation
 document.addEventListener('keydown', function(e) {
@@ -273,5 +378,15 @@ window.addEventListener('resize', function() {
 
 // Initialize PDF loading when page loads
 window.addEventListener('DOMContentLoaded', function() {
-    loadPDF();
+    // Check if PDF.js is loaded
+    if (typeof pdfjsLib === 'undefined') {
+        console.error('PDF.js library not loaded!');
+        showError({ name: 'LibraryError', message: 'PDF.js library failed to load. Please check your internet connection.' });
+        return;
+    }
+    
+    // Wait a bit to ensure PDF.js is fully initialized
+    setTimeout(function() {
+        loadPDF();
+    }, 100);
 });

@@ -110,6 +110,14 @@ body {
     font-size: 1.1rem;
 }
 
+.error-message input[type="file"] {
+    display: none;
+}
+
+.error-message .btn {
+    margin-top: 1rem;
+}
+
 /* PDF viewer container */
 .pdf-viewer-container {
     width: 100%;

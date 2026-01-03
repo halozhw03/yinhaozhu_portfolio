@@ -10,29 +10,33 @@ A web-based portfolio showcase built with HTML, CSS, and JavaScript, featuring a
 - 🔍 Zoom controls (zoom in, zoom out, fit to width)
 - 🎨 Modern, clean UI design
 - ⚡ Fast loading with CDN resources
+- 📂 File picker support for local PDF files (no server needed!)
 
 ## Local Development
 
-### Option 1: Simple HTTP Server
+### Option 1: Direct File Access (Easiest - No Server Needed!)
+
+Simply double-click `index.html` to open it in your browser. If the PDF doesn't load automatically, click the "选择PDF文件" (Select PDF File) button and choose `YinhaoZhu_Portfolio-compressed.pdf` from the project folder.
+
+### Option 2: Simple HTTP Server
 
 Using Python 3:
 ```bash
 python3 -m http.server 8000
 ```
-
-Using Python 2:
+Or use the provided script:
 ```bash
-python -m SimpleHTTPServer 8000
+./start-server.sh
 ```
+
+Then open `http://localhost:8000` in your browser.
 
 Using Node.js (http-server):
 ```bash
 npx http-server -p 8000
 ```
 
-Then open `http://localhost:8000` in your browser.
-
-### Option 2: VS Code Live Server
+### Option 3: VS Code Live Server
 
 If you're using VS Code, install the "Live Server" extension and click "Go Live" in the status bar.
 
@@ -63,9 +67,10 @@ If you're using VS Code, install the "Live Server" extension and click "Go Live"
 
 ### Important Notes
 
-- The PDF file (`compressed_portfolio.pdf`) is directly committed to the repository
+- The PDF file (`YinhaoZhu_Portfolio-compressed.pdf`) is directly committed to the repository
 - GitHub Pages does not support Git LFS files, so the PDF is stored directly in Git
-- The file size (12.8MB) is within GitHub's 100MB file size limit
+- The file size is within GitHub's 100MB file size limit
+- **New**: You can now load PDF files directly without a server using the file picker!
 
 ## File Structure
 
