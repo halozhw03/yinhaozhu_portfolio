@@ -6,7 +6,7 @@ let pdfDoc = null;
 let pageNum = 1;
 let pageRendering = false;
 let pageNumPending = null;
-let scale = 1.0;
+let scale = 1.5; // Increased default scale for better readability
 let canvas = null;
 let ctx = null;
 
@@ -46,13 +46,18 @@ function renderPage(num) {
         canvas.style.height = viewport.height + 'px';
         
         // Set canvas internal size (actual pixels) - multiply by devicePixelRatio for crisp rendering
-        const outputScale = devicePixelRatio;
+        // Use higher multiplier for better quality on high-DPI displays
+        const outputScale = Math.max(devicePixelRatio, 2); // Minimum 2x for high resolution
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
         
         // Reset transform and scale the rendering context to match device pixel ratio
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(outputScale, outputScale);
+        
+        // Enable image smoothing for better quality
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
         // Create render context with the scaled viewport
         const renderContext = {
@@ -132,7 +137,7 @@ function onZoomOut() {
  * Zoom in
  */
 function onZoomIn() {
-    if (scale >= 3.0) {
+    if (scale >= 4.0) { // Increased max zoom for better readability
         return;
     }
     scale += 0.25;
@@ -191,7 +196,7 @@ function showViewer() {
  */
 function getPDFPath() {
     // Use relative path - works for both local and GitHub Pages
-    return 'compressed_portfolio.pdf';
+    return 'YinhaoZhu_Portfolio-compressed.pdf';
 }
 
 /**
@@ -201,7 +206,7 @@ function loadPDF() {
     const pdfPath = getPDFPath();
     console.log(`Loading PDF from: ${pdfPath}`);
     
-    // Configure PDF.js
+    // Configure PDF.js with high-quality rendering settings
     const loadingTask = pdfjsLib.getDocument({
         url: pdfPath,
         withCredentials: false,
@@ -209,7 +214,11 @@ function loadPDF() {
             'Accept': 'application/pdf'
         },
         cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-        cMapPacked: true
+        cMapPacked: true,
+        // Enable high-quality rendering
+        verbosity: 0, // Reduce console output
+        disableAutoFetch: false,
+        disableStream: false
     });
     
     loadingTask.promise.then(function(pdf) {
@@ -217,7 +226,16 @@ function loadPDF() {
         pdfDoc = pdf;
         showViewer();
         // Auto fit to width on initial load for better readability
-        onFitWidth();
+        // Use a slightly larger scale for better readability
+        setTimeout(() => {
+            onFitWidth();
+            // If the fit width scale is too small, use a minimum scale
+            if (scale < 1.0) {
+                scale = 1.0;
+                updateZoomLevel();
+                queueRenderPage(pageNum);
+            }
+        }, 100);
     }).catch(function(error) {
         console.error('Failed to load PDF:', error);
         showError(error);
