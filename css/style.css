@@ -54,6 +54,18 @@ body {
     font-weight: 300;
 }
 
+.subtitle a {
+    color: #87ceeb;
+    text-decoration: underline;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.subtitle a:hover {
+    color: #ffffff;
+    text-decoration: none;
+}
+
 /* Main content */
 .main-content {
     flex: 1;

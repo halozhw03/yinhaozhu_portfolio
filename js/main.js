@@ -47,8 +47,8 @@ function renderPage(num) {
         canvas.style.height = viewport.height + 'px';
         
         // Set canvas internal size (actual pixels) for crisp rendering.
-        // Use higher multiplier for better quality on high-DPI displays.
-        const outputScale = Math.max(devicePixelRatio, 2); // Minimum 2x for high resolution
+        // Balance speed/quality: render at 1x on normal displays, cap at 2x on HiDPI.
+        const outputScale = Math.min(devicePixelRatio, 2);
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
 
@@ -155,7 +155,8 @@ function onFitWidth() {
         // Use more of the available width for better readability
         const containerWidth = pdfViewerContainer.clientWidth - 20; // Minimal padding
         const viewport = page.getViewport({ scale: 1.0 });
-        scale = containerWidth / viewport.width;
+        // Prevent extremely large scale on wide screens for better performance.
+        scale = Math.min(containerWidth / viewport.width, 1.75);
         updateZoomLevel();
         queueRenderPage(pageNum);
     });
